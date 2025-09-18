@@ -13,17 +13,29 @@ from routes.send_pdf import router as pdf_router  # noqa: E402
 
 app = FastAPI(title="Cierres API", version="0.1.0")
 
-# CORS
-_default_origins = ["http://localhost:3000"]
-_env_origins = os.getenv("CORS_ORIGINS")  # separado por comas si se usa
-if _env_origins:
-    origins = [o.strip() for o in _env_origins.split(",") if o.strip()]
-else:
-    origins = _default_origins
+# ---------------------------------------------------------------------------
+# CORS CONFIG (simplificado)
+# Reglas:
+#  - Siempre permitir localhost:3000 (desarrollo)
+#  - Permitir cualquier subdominio https de chinatownlogistic.com
+#    (ej: https://odoo-rr.chinatownlogistic.com, https://app.a.chinatownlogistic.com)
+#  - No dependemos ya de variables de entorno para CORS.
+# ---------------------------------------------------------------------------
+
+_explicit_origins = [
+    "http://localhost:3000",
+]
+
+# Regex:
+# ^https://              fuerza https
+# ([a-zA-Z0-9-]+\.)+     al menos un subdominio (impide raíz directa si no se desea)
+# chinatownlogistic\.com$ dominio base
+_wildcard_regex = r"^https://([a-zA-Z0-9-]+\.)+chinatownlogistic\.com$"
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=_explicit_origins,
+    allow_origin_regex=_wildcard_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
