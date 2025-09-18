@@ -55,13 +55,17 @@ PYTHONUNBUFFERED=1
 Gunicorn recibe SIGTERM de Coolify y hace shutdown gracioso (`--graceful-timeout 30`).
 
 ## Logs
-Ver logs directamente desde Coolify o:
+`CMD` usa forma JSON y `exec` para mejor manejo de señales (graceful shutdown). Ver logs directamente desde Coolify o:
 ```bash
 docker logs -f noti-api
 ```
 
 ## Healthcheck
-La ruta `/health` responde `{"status":"ok"}`. Coolify puede configurarse para usarla.
+La imagen incluye un `HEALTHCHECK` que consulta `http://127.0.0.1:$PORT/health` cada 30s (timeout 5s, retries 3, start-period 5s). Se marcará `healthy` cuando la respuesta JSON contenga `{ "status": "ok" }`.
+
+Coolify podrá leer `State.Health.Status` sin necesidad de configuración extra. Si defines un healthcheck propio en la plataforma, puedes igualmente apuntar a `/health`.
+
+Para desactivarlo deberías comentar la instrucción en el `Dockerfile` y reconstruir.
 
 ## Actualizaciones
 Tras push en main (o branch configurada), Coolify puede auto deploy.
