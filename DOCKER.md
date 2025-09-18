@@ -42,7 +42,7 @@ Copiar `example.env` a `.env` y completar.
 2. Definir puerto interno `8000` (Coolify detectará el `EXPOSE`).
 3. Configurar dominio + certificado (Coolify gestiona HTTPS y hace reverse proxy -> no modificar código).
 4. Establecer variables de entorno (o cargar `.env`). No subir `.env` al repo.
-5. Ajustar `WEB_CONCURRENCY` si se necesita más (fórmula recomendada: `2 * CPU + 1`).
+5. (Opcional) Ajustar `PORT` si deseas otro puerto interno.
 
 Ejemplo variables adicionales en Coolify:
 ```
@@ -52,20 +52,16 @@ PYTHONUNBUFFERED=1
 ```
 
 ## Señales / Shutdown
-Gunicorn recibe SIGTERM de Coolify y hace shutdown gracioso (`--graceful-timeout 30`).
+`uvicorn` maneja SIGTERM/SIGINT correctamente; Coolify enviará la señal y el servidor cerrará limpio.
 
 ## Logs
-`CMD` usa forma JSON y `exec` para mejor manejo de señales (graceful shutdown). Ver logs directamente desde Coolify o:
+Ver logs directamente desde Coolify o:
 ```bash
 docker logs -f noti-api
 ```
 
 ## Healthcheck
-La imagen incluye un `HEALTHCHECK` que consulta `http://127.0.0.1:$PORT/health` cada 30s (timeout 5s, retries 3, start-period 5s). Se marcará `healthy` cuando la respuesta JSON contenga `{ "status": "ok" }`.
-
-Coolify podrá leer `State.Health.Status` sin necesidad de configuración extra. Si defines un healthcheck propio en la plataforma, puedes igualmente apuntar a `/health`.
-
-Para desactivarlo deberías comentar la instrucción en el `Dockerfile` y reconstruir.
+No se define `HEALTHCHECK` en la imagen para mantener simplicidad. Si Coolify requiere uno, configura en la UI un check HTTP a `/health` cada 30s.
 
 ## Actualizaciones
 Tras push en main (o branch configurada), Coolify puede auto deploy.
@@ -79,7 +75,7 @@ Tras push en main (o branch configurada), Coolify puede auto deploy.
 | Problema | Posible causa | Solución |
 |----------|---------------|----------|
 | 502 Gateway | Puerto incorrecto | Verificar que servicio escuche en 8000 |
-| Timeout | Lentos los endpoints | Aumentar `--timeout` en CMD Gunicorn |
+| Timeout | Lentos los endpoints | Revisar lógica; escalar horizontalmente |
 | Vars vacías | No cargó .env | Revisar configuración de variables en Coolify |
 
 ## Extender
