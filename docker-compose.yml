@@ -1,0 +1,12 @@
+version: "3.9"
+services:
+  api:
+    build: .
+    container_name: noti-api
+    env_file: .env
+    environment:
+      # Puedes ajustar WORKERS o DEBUG aquí
+      WORKERS: 2
+    ports:
+      - "8000:8000"
+    restart: unless-stopped

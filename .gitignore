@@ -1,0 +1,8 @@
+# Entorno y secretos
+.env
+
+# Archivos generados
+*.pdf
+__pycache__/
+*.pyc
+.venv

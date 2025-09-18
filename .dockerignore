@@ -1,0 +1,17 @@
+# Carpeta y archivos que no deben ir a la imagen
+.env
+*.env
+__pycache__/
+*.py[cod]
+*$py.class
+.git
+.gitignore
+.mypy_cache
+pytest_cache
+venv/
+.build/
+.dist/
+.idea/
+.vscode/
+Dockerfile*
+README.md
