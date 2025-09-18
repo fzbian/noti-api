@@ -2,7 +2,8 @@ FROM python:3.9-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    APP_PORT=8000
+    APP_PORT=8084 \
+    PORT=8084
 
 WORKDIR /app
 
@@ -18,11 +19,11 @@ COPY . .
 RUN chown -R appuser:appuser /app
 USER appuser
 
-EXPOSE 8000
+EXPOSE 8084
 
 # Healthcheck simple para Coolify (usa /health). Si falla => container unhealthy.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD curl -fsS http://127.0.0.1:8000/health || exit 1
+    CMD sh -c 'curl -fsS http://127.0.0.1:${PORT:-8084}/health || exit 1'
 
 # Arranque simple con uvicorn
-CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh","-c","python -m uvicorn app:app --host 0.0.0.0 --port ${PORT:-8084}"]

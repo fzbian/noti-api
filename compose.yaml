@@ -4,17 +4,17 @@ services:
     image: noti-api:latest
     container_name: noti-api
     ports:
-      - "8000:8000"
+      - "8084:8084"
     env_file:
       - .env  # crea uno basado en example.env para local
     environment:
       # Puedes sobrescribir variables aquí si no quieres usar un archivo .env
-      # PORT: 8000
+  # PORT: 8084
       # WEB_CONCURRENCY: 2
       PYTHONUNBUFFERED: "1"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8084/health"]
       interval: 30s
       timeout: 5s
       retries: 3
