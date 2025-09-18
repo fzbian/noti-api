@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from fastapi import Request
 from fastapi.responses import JSONResponse
 import os
+from fastapi.middleware.cors import CORSMiddleware
 
 # Cargar variables de entorno al iniciar (solo una vez)
 load_dotenv()
@@ -11,6 +12,22 @@ from routes.send_plain_text import router as plain_text_router  # noqa: E402
 from routes.send_pdf import router as pdf_router  # noqa: E402
 
 app = FastAPI(title="Cierres API", version="0.1.0")
+
+# CORS
+_default_origins = ["http://localhost:3000"]
+_env_origins = os.getenv("CORS_ORIGINS")  # separado por comas si se usa
+if _env_origins:
+    origins = [o.strip() for o in _env_origins.split(",") if o.strip()]
+else:
+    origins = _default_origins
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 APP_DEBUG = os.getenv("APP_DEBUG", "0") in {"1", "true", "True", "yes", "on"}
 
