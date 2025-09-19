@@ -9,7 +9,7 @@ router = APIRouter(prefix="/whatsapp", tags=["whatsapp"])
 load_dotenv()
 
 class SendTextRequest(BaseModel):
-	chat: str = Field(..., description="Alias de chat: traspasos | pedidos | pruebas | atm")
+	chat: str = Field(..., description="Alias de chat: traspasos | pedidos | pruebas | atm | cierres")
 	message: str = Field(..., description="Texto a enviar (siempre se valida envío)")
 
 
@@ -25,21 +25,25 @@ def _resolve_chat(alias: str) -> str:
 	  traspasos -> WHATSAPP_TRASPASOS
 	  pedidos   -> WHATSAPP_PEDIDOS
 	  pruebas   -> WHATSAPP_PRUEBAS
+	  atm       -> WHATSAPP_ATM
+	  cierres   -> CHAT_CIERRES (o WHATSAPP_CIERRES)
 	"""
 	alias_l = alias.lower()
 	mapping = {
-		"traspasos": "WHATSAPP_TRASPASOS",
-		"pedidos": "WHATSAPP_PEDIDOS",
-		"pruebas": "WHATSAPP_PRUEBAS",
-		"atm": "WHATSAPP_ATM",
+		"traspasos": ["WHATSAPP_TRASPASOS"],
+		"pedidos": ["WHATSAPP_PEDIDOS"],
+		"pruebas": ["WHATSAPP_PRUEBAS"],
+		"atm": ["WHATSAPP_ATM"],
+		"cierres": ["CHAT_CIERRES", "WHATSAPP_CIERRES"],
 	}
-	env_key = mapping.get(alias_l)
-	if not env_key:
-		raise HTTPException(status_code=400, detail=f"Alias desconocido: {alias}. Use: traspasos|pedidos|pruebas")
-	value = os.getenv(env_key)
-	if not value:
-		raise HTTPException(status_code=500, detail=f"Variable de entorno {env_key} no definida")
-	return value
+	env_keys = mapping.get(alias_l)
+	if not env_keys:
+		raise HTTPException(status_code=400, detail=f"Alias desconocido: {alias}. Use: traspasos|pedidos|pruebas|atm|cierres")
+	for key in env_keys:
+		value = os.getenv(key)
+		if value:
+			return value
+	raise HTTPException(status_code=500, detail=f"Variables de entorno no definidas: {', '.join(env_keys)}")
 
 @router.post("/send-text", response_model=SendTextResponse)
 def send_text(req: SendTextRequest):

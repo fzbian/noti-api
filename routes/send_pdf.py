@@ -13,28 +13,32 @@ router = APIRouter(prefix="/whatsapp", tags=["whatsapp"])
 def _resolve_chat(alias: str) -> str:
     """Resuelve el alias a su número/JID usando variables de entorno.
 
-    Alias soportados:
-      traspasos -> WHATSAPP_TRASPASOS
-      pedidos   -> WHATSAPP_PEDIDOS
-      pruebas   -> WHATSAPP_PRUEBAS
+        Alias soportados:
+            traspasos -> WHATSAPP_TRASPASOS
+            pedidos   -> WHATSAPP_PEDIDOS
+            pruebas   -> WHATSAPP_PRUEBAS
+            atm       -> WHATSAPP_ATM
+            cierres   -> CHAT_CIERRES (o WHATSAPP_CIERRES)
     """
     alias_l = alias.lower()
     mapping = {
-        "traspasos": "WHATSAPP_TRASPASOS",
-        "pedidos": "WHATSAPP_PEDIDOS",
-        "pruebas": "WHATSAPP_PRUEBAS",
-        "atm": "WHATSAPP_ATM",
+        "traspasos": ["WHATSAPP_TRASPASOS"],
+        "pedidos": ["WHATSAPP_PEDIDOS"],
+        "pruebas": ["WHATSAPP_PRUEBAS"],
+        "atm": ["WHATSAPP_ATM"],
+        "cierres": ["CHAT_CIERRES", "WHATSAPP_CIERRES"],
     }
-    env_key = mapping.get(alias_l)
-    if not env_key:
-        raise HTTPException(status_code=400, detail=f"Alias desconocido: {alias}. Use: traspasos|pedidos|pruebas")
-    value = os.getenv(env_key)
-    if not value:
-        raise HTTPException(status_code=500, detail=f"Variable de entorno {env_key} no definida")
-    return value
+    env_keys = mapping.get(alias_l)
+    if not env_keys:
+        raise HTTPException(status_code=400, detail=f"Alias desconocido: {alias}. Use: traspasos|pedidos|pruebas|atm|cierres")
+    for key in env_keys:
+        value = os.getenv(key)
+        if value:
+            return value
+    raise HTTPException(status_code=500, detail=f"Variables de entorno no definidas: {', '.join(env_keys)}")
 
 class SendPDFRequest(BaseModel):
-    chat: str = Field(..., description="Alias de chat: traspasos | pedidos | pruebas | atm")
+    chat: str = Field(..., description="Alias de chat: traspasos | pedidos | pruebas | atm | cierres")
     pos_name: str = Field(..., description="Nombre de la sesión POS (ej: POS/00025)")
     caption: Optional[str] = Field(None, description="Caption opcional. Si no se envía no se agrega caption.")
 
