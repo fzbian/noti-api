@@ -27,10 +27,11 @@ def _resolve_chat(alias: str) -> str:
         "pruebas": ["WHATSAPP_PRUEBAS"],
         "atm": ["WHATSAPP_ATM"],
         "cierres": ["CHAT_CIERRES", "WHATSAPP_CIERRES"],
+        "retiradas": ["WHATSAPP_RETIRADAS"],
     }
     env_keys = mapping.get(alias_l)
     if not env_keys:
-        raise HTTPException(status_code=400, detail=f"Alias desconocido: {alias}. Use: traspasos|pedidos|pruebas|atm|cierres")
+        raise HTTPException(status_code=400, detail=f"Alias desconocido: {alias}. Use: traspasos|pedidos|pruebas|atm|cierres|retiradas")
     for key in env_keys:
         value = os.getenv(key)
         if value:
@@ -38,7 +39,7 @@ def _resolve_chat(alias: str) -> str:
     raise HTTPException(status_code=500, detail=f"Variables de entorno no definidas: {', '.join(env_keys)}")
 
 class SendPDFRequest(BaseModel):
-    chat: str = Field(..., description="Alias de chat: traspasos | pedidos | pruebas | atm | cierres")
+    chat: str = Field(..., description="Alias de chat: traspasos | pedidos | pruebas | atm | cierres | retiradas")
     pos_name: str = Field(..., description="Nombre de la sesión POS (ej: POS/00025)")
     caption: Optional[str] = Field(None, description="Caption opcional. Si no se envía no se agrega caption.")
 

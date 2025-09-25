@@ -9,7 +9,7 @@ router = APIRouter(prefix="/whatsapp", tags=["whatsapp"])
 load_dotenv()
 
 class SendTextRequest(BaseModel):
-	chat: str = Field(..., description="Alias de chat: traspasos | pedidos | pruebas | atm | cierres")
+	chat: str = Field(..., description="Alias de chat: traspasos | pedidos | pruebas | atm | cierres | retiradas")
 	message: str = Field(..., description="Texto a enviar (siempre se valida envío)")
 
 
@@ -35,10 +35,11 @@ def _resolve_chat(alias: str) -> str:
 		"pruebas": ["WHATSAPP_PRUEBAS"],
 		"atm": ["WHATSAPP_ATM"],
 		"cierres": ["CHAT_CIERRES", "WHATSAPP_CIERRES"],
+		"retiradas": ["WHATSAPP_RETIRADAS"],
 	}
 	env_keys = mapping.get(alias_l)
 	if not env_keys:
-		raise HTTPException(status_code=400, detail=f"Alias desconocido: {alias}. Use: traspasos|pedidos|pruebas|atm|cierres")
+		raise HTTPException(status_code=400, detail=f"Alias desconocido: {alias}. Use: traspasos|pedidos|pruebas|atm|cierres|retiradas")
 	for key in env_keys:
 		value = os.getenv(key)
 		if value:
