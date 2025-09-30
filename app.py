@@ -10,6 +10,7 @@ load_dotenv()
 
 from routes.send_plain_text import router as plain_text_router  # noqa: E402
 from routes.send_pdf import router as pdf_router  # noqa: E402
+from routes.validate_number import router as validate_number_router  # noqa: E402
 
 app = FastAPI(title="Cierres API", version="0.1.0")
 
@@ -65,6 +66,7 @@ async def log_errors(request: Request, call_next):
 
 app.include_router(plain_text_router)
 app.include_router(pdf_router)
+app.include_router(validate_number_router)
 
 @app.get("/health")
 async def health():

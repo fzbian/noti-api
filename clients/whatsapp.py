@@ -38,6 +38,44 @@ def _get_config() -> Tuple[str, str, str]:
         raise ValueError("Falta WHATSAPP_INSTANCE en entorno")
     return api_key, instance, base.rstrip('/')
 
+def check_number_exists(full_number: str) -> Optional[dict]:
+    """Consulta si un número existe en WhatsApp usando la API oficial.
+
+    Args:
+        full_number: Número en formato internacional (+57...).
+
+    Returns:
+        Dict con los datos retornados por la API (jid, exists, number, name, etc)
+        o None si la lista viene vacía.
+
+    Raises:
+        ValueError: Si no se proporcionó el número.
+        RuntimeError: Si la API responde con error o formato inesperado.
+    """
+    if not full_number:
+        raise ValueError("'full_number' es requerido")
+
+    api_key, instance, base = _get_config()
+    url = f"{base}/chat/whatsappNumbers/{instance}"
+    payload = {"numbers": [full_number]}
+    headers = {"Content-Type": "application/json", "apikey": api_key}
+
+    resp = httpx.post(url, json=payload, headers=headers, timeout=10.0)
+    if resp.status_code >= 400:
+        detail = None
+        try:
+            detail = resp.json()
+        except Exception:
+            detail = resp.text
+        raise RuntimeError(f"Error HTTP {resp.status_code} al validar número: {detail}")
+
+    data = resp.json()
+    if not isinstance(data, list):
+        raise RuntimeError(f"Formato inesperado en respuesta: {data}")
+    if not data:
+        return None
+    return data[0]
+
 def send_message(number: str, text: Optional[str], *, file_path: Optional[str] = None, file_name: Optional[str] = None, caption: Optional[str] = None, media_type: str = "document", debug: bool = False, auto_caption: bool = True) -> str:
     """Envía un mensaje de texto o un documento PDF.
 
@@ -202,4 +240,4 @@ def send_and_validate(
             return "Mensaje enviado y validado"
     return f"IDs no coinciden tras {attempts} intentos: enviado={sent_id} ultimo={last_id}"
 
-__all__ = ["send_message", "validate_message", "send_and_validate"]
+__all__ = ["send_message", "validate_message", "send_and_validate", "check_number_exists"]
