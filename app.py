@@ -11,6 +11,8 @@ load_dotenv()
 from routes.send_plain_text import router as plain_text_router  # noqa: E402
 from routes.send_pdf import router as pdf_router  # noqa: E402
 from routes.validate_number import router as validate_number_router  # noqa: E402
+from routes.send_text_number import router as send_text_number_router  # noqa: E402
+from routes.send_pdf_number import router as send_pdf_number_router  # noqa: E402
 
 app = FastAPI(title="Cierres API", version="0.1.0")
 
@@ -66,6 +68,8 @@ async def log_errors(request: Request, call_next):
 
 app.include_router(plain_text_router)
 app.include_router(pdf_router)
+app.include_router(send_text_number_router)
+app.include_router(send_pdf_number_router)
 app.include_router(validate_number_router)
 
 @app.get("/health")
@@ -81,19 +85,3 @@ async def root():
     """
     return {"service": app.title, "version": app.version, "status": "ok"}
 
-@app.get("/_debug/env")
-async def debug_env():
-    if not APP_DEBUG:
-        return JSONResponse(status_code=403, content={"detail": "Activar APP_DEBUG para ver esto"})
-    keys = [
-        "ODOO_URL","ODOO_DB","ODOO_USERNAME","WHATSAPP_URL","WHATSAPP_INSTANCE",
-        "WHATSAPP_APIKEY","WHATSAPP_TRASPASOS","WHATSAPP_PEDIDOS","WHATSAPP_PRUEBAS","WHATSAPP_ATM"
-    ]
-    snapshot = {k: ("<set>" if os.getenv(k) else None) for k in keys}
-    return {"env": snapshot, "debug": True}
-
-# Endpoints:
-#  POST /whatsapp/send-text  {chat, message}
-#  POST /whatsapp/send-pdf   {chat, pos_name, caption?}
-# Ejecutar con:
-# uvicorn app:app --reload --port 8000

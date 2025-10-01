@@ -1,10 +1,8 @@
+
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
-from dotenv import load_dotenv
-
 from clients.whatsapp import check_number_exists
 
-load_dotenv()
 
 router = APIRouter(prefix="/whatsapp", tags=["whatsapp"])
 
@@ -16,13 +14,12 @@ class ValidateNumberResponse(BaseModel):
 
 
 @router.get("/validate-number", response_model=ValidateNumberResponse)
-def validate_number(number: str = Query(
-    ...,
-    min_length=10,
-    max_length=10,
-    pattern=r"^\d{10}$",
-    description="Número celular colombiano de 10 dígitos (sin prefijo).",
-)):
+def validate_number(
+    number: str = Query(
+        ..., min_length=10, max_length=10, pattern=r"^\d{10}$",
+        description="Número celular colombiano de 10 dígitos (sin prefijo)."
+    )
+):
     formatted = f"+57{number}"
     try:
         data = check_number_exists(formatted)

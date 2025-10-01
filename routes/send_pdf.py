@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-from dotenv import load_dotenv
-import os
 from typing import Optional
+import os
+from dotenv import load_dotenv
 from services.pdf_service import generate_pdf, SessionNotFoundError, PDFGenerationError
 from clients.whatsapp import send_and_validate
 
@@ -10,28 +10,19 @@ load_dotenv()
 
 router = APIRouter(prefix="/whatsapp", tags=["whatsapp"])
 
-def _resolve_chat(alias: str) -> str:
-    """Resuelve el alias a su número/JID usando variables de entorno.
+_CHAT_MAPPING = {
+    "traspasos": ["WHATSAPP_TRASPASOS"],
+    "pedidos": ["WHATSAPP_PEDIDOS"],
+    "pruebas": ["WHATSAPP_PRUEBAS"],
+    "atm": ["WHATSAPP_ATM"],
+    "cierres": ["CHAT_CIERRES", "WHATSAPP_CIERRES"],
+    "retiradas": ["WHATSAPP_RETIRADAS"],
+}
 
-        Alias soportados:
-            traspasos -> WHATSAPP_TRASPASOS
-            pedidos   -> WHATSAPP_PEDIDOS
-            pruebas   -> WHATSAPP_PRUEBAS
-            atm       -> WHATSAPP_ATM
-            cierres   -> CHAT_CIERRES (o WHATSAPP_CIERRES)
-    """
-    alias_l = alias.lower()
-    mapping = {
-        "traspasos": ["WHATSAPP_TRASPASOS"],
-        "pedidos": ["WHATSAPP_PEDIDOS"],
-        "pruebas": ["WHATSAPP_PRUEBAS"],
-        "atm": ["WHATSAPP_ATM"],
-        "cierres": ["CHAT_CIERRES", "WHATSAPP_CIERRES"],
-        "retiradas": ["WHATSAPP_RETIRADAS"],
-    }
-    env_keys = mapping.get(alias_l)
+def resolve_chat(alias: str) -> str:
+    env_keys = _CHAT_MAPPING.get(alias.lower())
     if not env_keys:
-        raise HTTPException(status_code=400, detail=f"Alias desconocido: {alias}. Use: traspasos|pedidos|pruebas|atm|cierres|retiradas")
+        raise HTTPException(status_code=400, detail=f"Alias desconocido: {alias}. Use: {', '.join(_CHAT_MAPPING.keys())}")
     for key in env_keys:
         value = os.getenv(key)
         if value:
@@ -39,7 +30,7 @@ def _resolve_chat(alias: str) -> str:
     raise HTTPException(status_code=500, detail=f"Variables de entorno no definidas: {', '.join(env_keys)}")
 
 class SendPDFRequest(BaseModel):
-    chat: str = Field(..., description="Alias de chat: traspasos | pedidos | pruebas | atm | cierres | retiradas")
+    chat: str = Field(..., description=f"Alias de chat: {', '.join(_CHAT_MAPPING.keys())}")
     pos_name: str = Field(..., description="Nombre de la sesión POS (ej: POS/00025)")
     caption: Optional[str] = Field(None, description="Caption opcional. Si no se envía no se agrega caption.")
 
@@ -50,36 +41,22 @@ class SendPDFResponse(BaseModel):
 
 @router.post("/send-pdf", response_model=SendPDFResponse)
 def send_pdf(req: SendPDFRequest):
-    """Genera un PDF de cierre (usando generate_pdf) y lo envía a WhatsApp.
-
-    Flujo:
-      1. Resolver alias de chat a JID.
-      2. Generar PDF con generate_pdf(req.pos_name) -> filename local.
-      3. Construir ruta absoluta al PDF.
-      4. Llamar send_and_validate con file_path y parámetros solicitados.
-
-    Retorna status ok si el mensaje se validó correctamente.
-    """
     try:
-        jid = _resolve_chat(req.chat)
+        jid = resolve_chat(req.chat)
         try:
             filename = generate_pdf(req.pos_name)
-        except SessionNotFoundError as e:
-            raise HTTPException(status_code=404, detail=str(e))
-        except PDFGenerationError as e:
-            raise HTTPException(status_code=500, detail=str(e))
-        except Exception as e:  # noqa: BLE001
+        except (SessionNotFoundError, PDFGenerationError) as e:
+            raise HTTPException(status_code=500 if isinstance(e, PDFGenerationError) else 404, detail=str(e))
+        except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error inesperado generando PDF: {e}")
 
         abs_path = os.path.abspath(filename)
-        caption = req.caption  # usar solo si viene
-
         result = send_and_validate(
             jid,
             None,
             file_path=abs_path,
             file_name=filename,
-            caption=caption,
+            caption=req.caption,
             attempts=6,
             delay_seconds=1.5,
             auto_caption=False,
@@ -94,5 +71,5 @@ def send_pdf(req: SendPDFRequest):
         raise HTTPException(status_code=400, detail=result)
     except HTTPException:
         raise
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
